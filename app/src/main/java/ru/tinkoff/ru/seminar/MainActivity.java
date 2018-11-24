@@ -1,7 +1,10 @@
 package ru.tinkoff.ru.seminar;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -120,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
         resultTextView.setText(stringBuilder.toString());
     }
 
-    private void showProgress(boolean visible) {
+    public void showProgress(boolean visible) {
         progressBar.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
     }
 
@@ -131,14 +134,6 @@ public class MainActivity extends AppCompatActivity {
     private void performRequest(@NonNull String city) {
         showProgress(true);
         setEnablePerformButton(false);
-
-        if (isNetwork()) {
-            showError("No connection");
-            showProgress(false);
-            setEnablePerformButton(true);
-            return;
-        }
-
 
         AppDelegate.from(this)
                 .getApiService()
@@ -162,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(Throwable e) {
-                        Log.d("myLogs", e.getMessage());
+                        showError("Error");
                         showProgress(false);
                         setEnablePerformButton(true);
                     }
@@ -190,12 +185,31 @@ public class MainActivity extends AppCompatActivity {
         return gsonBuilder.create();
     }
 
-    private boolean isNetwork() {
-        ConnectivityManager connectivityManager = (ConnectivityManager)
-                getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo =
-                connectivityManager.getActiveNetworkInfo();
-        return networkInfo == null || !networkInfo.isConnected();
+    @Override
+    protected void onStart() {
+        super.onStart();
+        registerReceiver(networkChangeReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
     }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(networkChangeReceiver);
+    }
+
+    private BroadcastReceiver networkChangeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager connectivityManager = (ConnectivityManager)
+                    getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo =
+                    connectivityManager.getActiveNetworkInfo();
+            if (networkInfo != null && networkInfo.isConnected()) {
+                setEnablePerformButton(true);
+            } else {
+                setEnablePerformButton(false);
+            }
+        }
+    };
 }
 

@@ -13,7 +13,7 @@ public class Weather {
     public Weather(@NonNull String description, String time, float temp, float speedWind) {
         this.description = description;
         this.time = time;
-        this.temp = temp;
+        this.temp = temp - 273.15f;
         this.speedWind = speedWind;
     }
 
